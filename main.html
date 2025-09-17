@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>图片对比：UE / OE / Ours / GT/UltraFusion</title>
+  <style>
+    :root { --gap: 10px; --maxw: 96vw; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+      background:#111; color:#eee;
+    }
+    .container{ max-width: var(--maxw); margin: 20px auto; }
+
+    .grid{ display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); }
+
+    /* 顶部列标题 */
+    .header{ position: sticky; top: 0; z-index: 5; background: rgba(17,17,17,0.96); padding: 8px 0; border-bottom: 1px solid #333; }
+    .head{ font-weight: 600; text-align: center; letter-spacing: .5px; }
+
+    /* 图片单元格 */
+    .cell{ background:#181818; padding:0; border:1px solid #262626; border-radius:1px; overflow:hidden; }
+    .cell a{ display:block; }
+    .cell img{ width:100%; height:auto; display:block; image-rendering:auto; }
+
+    .footer-note{ margin-top: 12px; font-size: 12px; color:#aaa; }
+
+    /* 行间分隔线，便于目视区分 */
+    .row-sep{ height:0; grid-column:1/-1; border-bottom:1px dashed #333; margin: 6px 0 12px; }
+
+    /* 行信息（显示当前行使用的文件名） */
+    .row-info{ grid-column:1/-1; text-align:right; font-size:12px; color:#9aa; opacity:.8; margin-top:-6px; margin-bottom:6px; }
+
+    /* 小屏幕降级：两列显示 */
+    @media (max-width: 900px){ .grid{ grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 列标题：UE / OE / Ours / GT/UltraFusion -->
+    <div class="grid header">
+      <div class="head">UE</div>
+      <div class="head">OE</div>
+      <div class="head">Ours</div>
+      <div class="head">GT/UltraFusion</div>
+    </div>
+
+    <!-- 图片网格主体 -->
+    <div id="grid" class="grid"></div>
+
+    <div class="footer-note">提示：当前脚本按照“images/子文件夹/编号.扩展名”的规则读取，例如 images/ue/1.png, images/oe/1.png, images/ours/1.png, images/gt/1.png。若第四列为 UltraFusion，请把 SUBDIRS["GT/UltraFusion"] 改为 'ultrafusion'。</div>
+  </div>
+
+  <script>
+    // ===================== 配置（适配你的目录结构） =====================
+    // 你的结构：./images 下有四个子文件夹（名字如下），每个子文件夹里有 1.png, 2.png, ...
+    // 每一行对比的四张图文件名相同（仅子目录不同）。
+    const CONFIG = {
+      NUM_ROWS: 38,          // 总行数
+      START: 1,              // 开始编号（若文件从 0.png 开始，改为 0）
+      EXT: 'png',            // 扩展名：'png' | 'jpg' | 'jpeg' 等
+      DIR: 'images',         // 图片根目录
+      SUBDIRS: {             // 四列对应的子目录名
+        'UE': 'ue',
+        'OE': 'oe',
+        'Ours': 'ours',
+        'GT/UltraFusion': 'ultrafusion' // 若使用 UltraFusion，请改成 'ultrafusion'
+      },
+      BASENAMES: null        // 可选：自定义每行的文件名数组（不含扩展名）。如 ['1','3','5', ...]
+    };
+
+    const COLUMNS = ['UE','OE','Ours','GT/UltraFusion'];
+
+    function getBase(i){
+      if (Array.isArray(CONFIG.BASENAMES) && CONFIG.BASENAMES[i-1]) return String(CONFIG.BASENAMES[i-1]);
+      return String(CONFIG.START + (i - 1));
+    }
+
+    function srcFor(col, base){
+      const sub = CONFIG.SUBDIRS[col];
+      return `${CONFIG.DIR}/${sub}/${base}.${CONFIG.EXT}`;
+    }
+
+    function build(){
+      const grid = document.getElementById('grid');
+      for(let i=1; i<=CONFIG.NUM_ROWS; i++){
+        const base = getBase(i);
+        for(const col of COLUMNS){
+          const src = srcFor(col, base);
+          const cell = document.createElement('figure');
+          cell.className = 'cell';
+          const a = document.createElement('a');
+          a.href = src; a.target = '_blank'; a.rel = 'noopener';
+          const img = document.createElement('img');
+          img.loading = 'lazy';
+          img.alt = `${col} - ${base}.${CONFIG.EXT}`;
+          img.src = src;
+          a.appendChild(img);
+          cell.appendChild(a);
+          grid.appendChild(cell);
+        }
+        // 显示该行使用的文件名，便于核对
+        const info = document.createElement('div');
+        info.className = 'row-info';
+        info.textContent = `Row ${i}: basename = ${base}.${CONFIG.EXT}`;
+        grid.appendChild(info);
+        // 行间分隔线
+        const sep = document.createElement('div');
+        sep.className = 'row-sep';
+        grid.appendChild(sep);
+      }
+    }
+
+    build();
+  </script>
+</body>
+</html>
